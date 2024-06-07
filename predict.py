@@ -111,7 +111,6 @@ def main():
         except ValueError as ve:
             print(f"Skipped parameters {testArray[i]} due to insufficient data: {ve}")
 
-    # Winning model: this is where we predict on live data
     if minErr == float('inf'):
         print("No suitable parameters found.")
     else:
