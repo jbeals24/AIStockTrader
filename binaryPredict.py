@@ -9,9 +9,7 @@ from sklearn.utils import class_weight
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, LSTM, Dense, Dropout, Concatenate
 
-
-
-def testCreateSet(data, original_data, lookBack, stepsAhead):
+def createSet(data, original_data, lookBack, stepsAhead):
     x_scaled, y_scaled, x_unscaled, distFromMean = [], [], [], []
     meanPrice = np.mean(original_data)
     
@@ -50,30 +48,10 @@ def testCreateSet(data, original_data, lookBack, stepsAhead):
     X_test_scaled = np.reshape(scaledxTest, (scaledxTest.shape[0], scaledxTest.shape[1], 1))
     return X_train_scaled, X_test_scaled, unscaledxTest, yTrain, yTest, distFromMeanTrain, distFromMeanTest
 
-def createSet(data, original_data, lookBack, stepsAhead):
-    x_scaled, y_scaled, x_unscaled = [], [], []
-    for index in range(len(data) - lookBack - stepsAhead + 1):
-        x_scaled.append(data.iloc[index:index + lookBack]['price_change'].values.flatten().tolist())
-        future_price = original_data[index + lookBack + stepsAhead - 1]
-        current_price = original_data[index + lookBack - 1]
-        y_scaled.append(1 if future_price > current_price else 0)
-        x_unscaled.append(original_data[index:index + lookBack].flatten().tolist())  # store unscaled data
-
-    x_scaled, y_scaled, x_unscaled = np.array(x_scaled), np.array(y_scaled), np.array(x_unscaled)
-    
-    # Shuffle data
-    # indices = np.arange(x_scaled.shape[0])
-    # np.random.shuffle(indices)
-    
-    return x_scaled, y_scaled, x_unscaled
-    # return x_scaled[indices], y_scaled[indices], x_unscaled[indices]
-
-
 def create_model(ticker, lookBack):
-    # Input for time series data
-
+    
     try:
-        modelString = 'test'+ticker+'Model.keras'
+        modelString = ticker+'Model.keras'
         model = load_model(modelString)
     except:
         time_series_input = Input(shape=(lookBack, 1), name='time_series_input')
@@ -104,15 +82,12 @@ def predict(model, numEpochs, X_train_scaled, distFromMeanTrain, distFromMeanTes
                                                       classes=np.unique(Y_train),
                                                       y=Y_train)
     class_weights_dict = dict(enumerate(class_weights))
-
-    # model.fit(X_train_scaled, Y_train, epochs=numEpochs, batch_size=32, validation_split=0.2, callbacks=[early_stopping, reduce_lr], verbose=1)
+    
     model.fit([X_train_scaled, distFromMeanTrain], Y_train, epochs=numEpochs, batch_size=32, validation_split=0.2, callbacks=[early_stopping, reduce_lr], verbose=1, class_weight=class_weights_dict)
     print(distFromMeanTest)
     Y_pred = model.predict([X_test_scaled, distFromMeanTest])
-    # Y_pred = model.predict(X_test_scaled)
     Y_pred_class = (Y_pred > 0.5).astype(int)
 
-    # Convert Y_test back to original form
     Y_test_original = np.where(Y_test > 0.5, 1, 0)
 
     correct_direction_predictions = (Y_pred_class.flatten() == Y_test_original).sum()
@@ -138,8 +113,8 @@ def train(model, train_data, test_data, original_test, original_train, lookBack,
     return accuracy, model
 
 def main():
-    pd.set_option('display.max_rows', None)
-    pd.set_option('display.max_columns', None)
+    # pd.set_option('display.max_rows', None)
+    # pd.set_option('display.max_columns', None)
     fileName = input("Name of file to train on: ")
     ticker = fileName[:4]
     file_path = 'data/' + fileName
@@ -149,87 +124,19 @@ def main():
     data['price_change'] = data['price'].diff().fillna(0)
     original_prices = data['price'].values.reshape(-1, 1)
     data['price_change'] = scaler.fit_transform(data[['price_change']])
-
-    # try:
-    #     
-    #     # model = load_model('binaryModel.keras')
-    #     model = load_model(modelString)
-    # except:
-    #     print("Creating New Model")
-    #     model = Sequential([
-    #         LSTM(50, return_sequences=True, input_shape=(10, 2)),
-    #         Dropout(0.2),
-    #         LSTM(50),
-    #         Dropout(0.2),
-    #         Dense(1, activation='sigmoid')
-    #     ])
-    #     model.compile(optimizer=Adam(learning_rate=1e-4), loss='binary_crossentropy', metrics=['accuracy'])
-
-    # train tests split
-    # split_ratio = 0.8
-    # split_index = int(len(data) * split_ratio)
-
-    # tmpXScaled, tmpYScaled, tmpXUnscaled = createSet(data, original_prices, 10, 10)
-    # indices = np.arange(tmpXScaled.shape[0])
-    # np.random.shuffle(indices)
-    # shuffledXscaled = tmpXUnscaled[indices]
-    # shuffledYScaled = tmpYScaled[indices]
-    # shuffledXUnscaled = tmpXUnscaled[indices]
     
-    # scaledxTrain = shuffledXscaled[:split_index]
-    # scaledxTest = shuffledXscaled[split_index:]
-    # unscaledxTrain = shuffledXUnscaled[:split_index]
-    # unscaledxTest = shuffledXscaled[split_index:]
-    
-    # yTrain = shuffledYScaled[:split_index]
-    # yTest= shuffledYScaled[split_index:]
-    
-    # old 
-    # train_data = data.iloc[:split_index]
-    # test_data = data.iloc[split_index:]
-    # original_test = original_prices[split_index:]
-    # original_train = original_prices[:split_index]
-    
-
     testArray = [[10, 10, 10], [10, 10, 15], [10, 10, 20], [10, 10, 25], [10, 10, 30], [10, 10, 35], [10, 10, 40]]
 
     winningIndex = 0
     maxAccuracy = 0
     winningModel = None
-    # X_train_scaled = np.reshape(scaledxTrain, (scaledxTrain.shape[0], scaledxTrain.shape[1], 1))
-    # X_test_scaled = np.reshape(scaledxTest, (scaledxTest.shape[0], scaledxTest.shape[1], 1))
-    for i in range(len(testArray)):
-        # accuracy, model = train(model, train_data, test_data, original_test, original_train, testArray[i][0], testArray[i][1], testArray[i][2], False)
-        
-        # indices = np.arange(tmpXScaled.shape[0])
-        # np.random.shuffle(indices)
-        # shuffledXscaled = tmpXScaled[indices]
-        # shuffledYScaled = tmpYScaled[indices]
-        # shuffledXUnscaled = tmpXUnscaled[indices]
-        # shuffledDistFromMean= distFromMean[indices]
-        
-        # scaledxTrain = shuffledXscaled[:split_index]
-        # scaledxTest = shuffledXscaled[split_index:]
-        # unscaledxTrain = shuffledXUnscaled[:split_index]
-        # unscaledxTest = shuffledXUnscaled[split_index:]
-        # distFromMeanTrain = shuffledDistFromMean[:split_index]
-        # distFromMeanTest = shuffledDistFromMean[split_index:]
-        
-        # yTrain = shuffledYScaled[:split_index]
-        # yTest= shuffledYScaled[split_index:]
 
-        # # Reshape for LSTM
-        # X_train_scaled = np.reshape(scaledxTrain, (scaledxTrain.shape[0], scaledxTrain.shape[1], 1))
-        # X_test_scaled = np.reshape(scaledxTest, (scaledxTest.shape[0], scaledxTest.shape[1], 1))
+    for i in range(len(testArray)):
         
         model = create_model(ticker, testArray[i][0])
         X_train_scaled, X_test_scaled, unscaledxTest, yTrain, yTest, distFromMeanTrain, distFromMeanTest = testCreateSet(data, original_prices, testArray[i][0], testArray[i][1])
         numEpochs, accuracy, model = predict(model, testArray[i][2], X_train_scaled, distFromMeanTrain, distFromMeanTest, yTrain, X_test_scaled, yTest, unscaledxTest, False)
         
-
-        # X_train_scaled = np.reshape(scaledxTrain, (scaledxTrain.shape[0], scaledxTrain.shape[1], 1))
-        # X_test_scaled = np.reshape(scaledxTest, (scaledxTest.shape[0], scaledxTest.shape[1], 1))
-        # numEpochs, accuracy, model = predict(model, testArray[i][2], X_train_combined, unscaledxTest, yTrain, X_test_combined, yTest, False)
         if i == 0 or accuracy > maxAccuracy:
             winningModel = model
             maxAccuracy = accuracy
@@ -239,7 +146,7 @@ def main():
     X_train_scaled, X_test_scaled, unscaledxTest, yTrain, yTest, distFromMeanTrain, distFromMeanTest = testCreateSet(data, original_prices, testArray[winningIndex][0], testArray[winningIndex][1])
     predict(winningModel, testArray[winningIndex][2], X_train_scaled, distFromMeanTrain, distFromMeanTest, yTrain, X_test_scaled, yTest, unscaledxTest, True)
     
-    modelString = 'test'+ticker+"Model.keras"
+    modelString = ticker+"Model.keras"
     winningModel.save(modelString)
 
 main()
