@@ -14,26 +14,14 @@ import datetime
 import pytz
 
 # Your paper trading API keys
-APCA_API_KEY_ID = 'PK9TX08O9SCWDVBAJOI8'
-APCA_API_SECRET_KEY = 'MyRdaMxjdOu2E101e2I3SRlAfaqxyCpdeeYu0Uam'
+APCA_API_KEY_ID = 'YOUR KEY ID HERE'
+APCA_API_SECRET_KEY = 'YOUR SECRET KEY HERE'
 APCA_API_PAPER_URL = 'https://paper-api.alpaca.markets'
 DATA_FEED = 'iex'
 
 # Initialize the API client for paper trading
 api = tradeapi.REST(APCA_API_KEY_ID, APCA_API_SECRET_KEY, APCA_API_PAPER_URL, api_version='v2')
 account = api.get_account()
-
-#===second account===
-# keyID2 = 'PKG3CT5TR57CZG4UPFB5'
-# secretKey2 = 'PStZwGCDGecYgBmZV2wu88oEOnY5g8nAPB8TJzkb'
-
-# api2 = tradeapi.REST(keyID2, secretKey2, APCA_API_PAPER_URL, api_version='v2')
-# account2 = api2.get_account() 
-
-
-
-# with open('scaler.pkl', 'rb') as f:
-#     scaler = pickle.load(f)
 
 priceString = []
 
@@ -70,36 +58,11 @@ lock = asyncio.Lock()
 def printPower():
     print(f'Buying Power: ${account.buying_power}')
 
-def get_yesterday_closing_price(ticker):
-    # Get the current date in UTC
-    now = datetime.datetime.now(pytz.utc)
-    
-    # Get the date for yesterday
-    yesterday = now - datetime.timedelta(days=1)
-    yesterday_str = yesterday.strftime('%Y-%m-%d')
-    
-    # Fetch aggregate data for the given ticker for yesterday
-    aggs = api.get_aggs(
-        ticker,
-        1,  # Timespan value (e.g., 1 minute)
-        yesterday_str,
-        yesterday_str
-    )
-    
-    # Get the closing price from the last aggregate data of the day
-    if aggs:
-        closing_price = aggs[-1].c
-    else:
-        closing_price = None
-    
-    return closing_price
-
 def getStockPrice(ticker):
     return api.get_latest_trade(ticker)
 
 def printActiveOrders():
     active_orders = api.list_orders(status='open')
-
     for order in active_orders:
         print(order)
     
@@ -173,49 +136,12 @@ def sellStock(ticker, qty, api):
     except Exception as e:
         print(f"An error occurred: {e}")
 
-def liquidate_on_price_increase(ticker, short_entry_price, qty_to_cover):
-    has_increased = False
-    priceLine = short_entry_price
-    while not has_increased:
-        current_price = float(api2.get_latest_trade(ticker).price)
-
-        if current_price > priceLine:
-            print(f"Price of {ticker} has increased from the entry price. Liquidating the short position.")
-            api2.submit_order(
-                symbol=ticker,
-                qty=qty_to_cover,
-                side='buy',
-                type='market',
-                time_in_force='gtc'
-            )
-            has_increased = True
-            print(f"Short position for {ticker} has been liquidated.")
-            break
-        else:
-            priceLine = current_price
-            time.sleep(.5)
-
-def runItBack(trade):
-    global counter, shortBoughtBack, soldBuy, originalBuyPrice, shares
-    if (counter == 2): sys.exit()
-
-    orderID, originalBuyPrice = submitBuyOrder(trade.symbol, shares, api)
-    sellStock(trade.symbol, shares, api2)
-    shortBoughtBack = False
-    soldBuy = False
-    counter += 1
 
 def recipt():
     trades = api.list_trades(limit=2)
     for trade in trades:
         print(f"Trade ID: {trade.id}, Symbol: {trade.symbol}, Qty: {trade.qty}, Price: {trade.price}")
 
-def firstPurchase(symbol):
-    global originalBuyPrice, originalSellPrice, shares
-    buyID, originalSellPrice = sellStock(symbol, shares, api2)
-    sellID, originalBuyPrice = submitBuyOrder(symbol, shares, api)
-    
-    return originalBuyPrice
 
 def makePrediction(priceString):
     global model, ticker, account, shares, liveTrading, api, BuyInProgress, SellInProgress
