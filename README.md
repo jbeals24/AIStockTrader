@@ -1,9 +1,39 @@
 # AIStockTrader
 
-This repository holds a number of files used to stream stock, crypto, and forex data. Use a LTSM time series machine learning algorithm to create an automated AI stock market trader. The `track.py` python file in the main directory is used to create a websocket stream to track every price change a stock of your choice makes. All you need to do to run the file is by running `python3 track.py` in the terminal. Assuming you have the correct packages installed, you will be prompted to enter the ticker of the stock you would like to track.
+This repository holds a number of files used to stream real-time stock, crypto, and forex data. It uses an LSTM time series machine learning algorithm to create an automated AI stock market trader. The `track.py` python file in the main directory creates a websocket stream to track every price change of a stock of your choice. To run the file, simply execute `python3 track.py` in the terminal. Assuming you have the correct packages installed, you will be prompted to enter the ticker of the stock you would like to track.
 
-above is what the prompt will look like.
+After that, a text file will be automatically generated with the name of the stock and three random ASCII characters appended to it. You can see the generated files in the `data` directory. You will then be prompted to press `y` if you would like to make live trades, or simply press enter to not. The stock price streaming data will be printed to the console and written to the created file.
 
-After that, a text file will be automatically generated with the name of the stock and three random ASCII characters to follow. You can see that here. There is a number of different text files in the `data` directory. From there, you will be prompted to hit `y` if you would like to make live trades or simply hit enter to not. You will then see the stock price streaming data printed to the console.
+# Overview of `binaryPredict.py`
 
-The `binaryPredict.py` and `predict.py` files are both used to train the time series models and make predictions on the data stored in the `data` directory. The `binaryPredict.py` file is the most up-to-date. The time series AI model trains on the data in the `data` directory and, depending on which stock you are training on, the program will load the current saved model if there is one created for that particular stock, or it will create it with the stock ticker followed by `Model.keras`. The method used in `binaryPredict.py` is to load in whatever file you want to train on, split it into train-test splits with the x values being a series of 10 price iterations and a binary y value of 1 if the price increased in price after the next 10 price movements or 0 if the price decreased. The model takes two inputs: the first is an array of 10 price iterations and the second is the difference in price from the last price in the sequence from the stock's mean price for the day. The output is a binary 1 or 0.
+## Imports and Dependencies
+```python
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import MinMaxScaler
+from tensorflow.keras.models import Sequential, load_model
+from tensorflow.keras.layers import LSTM, Dense, Dropout
+from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
+from tensorflow.keras.optimizers import Adam
+from sklearn.utils import class_weight
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Input, LSTM, Dense, Dropout, Concatenate
+```
+
+# Data Preparation
+The `createSet` function is responsible for preparing the dataset for training and testing. It takes the following steps:
+
+* Calculates the mean price of the stock.
+* Constructs input sequences of price changes, corresponding binary labels, and scales the data for more efficient training.
+* Calculates the distance of the last price in the sequence from the mean price.
+* Splits the data into training and testing sets and shuffles it to prevent overfitting.
+
+# Model Creation
+The create_model function creates and compiles an LSTM model if a pre-trained model does not already exist. LSTM models are designed to remember long-term dependencies in sequential data. The model consists of two inputs: time series data and the distance from the mean price. 
+
+# Model training and Prediction
+The predict function trains the model using the training data and evaluates its performance on the testing data. It uses early stopping and learning rate reduction as callbacks to improve training efficiency and prevent overfitting.
+
+# Main Function
+The `main` function is the entry point of the script. It handles file input, data preprocessing, model training, and evaluation. The function runs a main loop testing the models accuracy with different epochs and lenghts of input to converge on the best performing model. 
+
