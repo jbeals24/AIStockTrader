@@ -1,8 +1,11 @@
 # AIStockTrader
 
-This repository holds a number of files used to stream real-time stock, crypto, and forex data. It uses an LSTM time series machine learning algorithm to create an automated AI stock market trader. The `track.py` python file in the main directory creates a websocket stream to track every price change of a stock of your choice. To run the file, simply execute `python3 track.py` in the terminal. Assuming you have the correct packages installed, you will be prompted to enter the ticker of the stock you would like to track.
+This repository holds a number of files used to stream real-time stock, crypto, and forex data. It uses an LSTM time series machine learning algorithm to make predictions on real time data and automate trades. The `track.py` python file in the main directory creates a websocket stream to track every price change of a stock of your choice. To run the file, simply execute `python3 track.py` in the terminal. Assuming you have the correct packages installed, you will be prompted to enter the ticker of the stock you would like to track.
 
-After that, a text file will be automatically generated with the name of the stock and three random ASCII characters appended to it. You can see the generated files in the `data` directory. You will then be prompted to press `y` if you would like to make live trades, or simply press enter to not. The stock price streaming data will be printed to the console and written to the created file.
+After that, a text file will be automatically generated with the name of the stock and three random ASCII characters appended to it. You can see the generated files in the `data` directory. You will then be prompted to press `y` if you would like to make live trades, or simply press enter to not. The stock price streaming data will be printed to the console and written to the generated file.
+
+In this project, the Alpaca API is used to create a websocket connection for streaming real-time market data. If you are looking to run this program you will need to create a free alpaca account and replace the api keys with your own. Click [here](https://docs.alpaca.markets/docs/getting-started) to get started with the Alpaca API.
+
 
 # Overview of `binaryPredict.py`
 
@@ -20,7 +23,7 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, LSTM, Dense, Dropout, Concatenate
 ```
 
-# Data Preparation
+## Data Preparation
 The `createSet` function is responsible for preparing the dataset for training and testing. It takes the following steps:
 
 * Calculates the mean price of the stock.
@@ -28,12 +31,17 @@ The `createSet` function is responsible for preparing the dataset for training a
 * Calculates the distance of the last price in the sequence from the mean price.
 * Splits the data into training and testing sets and shuffles it to prevent overfitting.
 
-# Model Creation
+## Model Creation
 The create_model function creates and compiles an LSTM model if a pre-trained model does not already exist. LSTM models are designed to remember long-term dependencies in sequential data. The model consists of two inputs: time series data and the distance from the mean price. 
 
-# Model training and Prediction
+## Model training and Prediction
 The predict function trains the model using the training data and evaluates its performance on the testing data. It uses early stopping and learning rate reduction as callbacks to improve training efficiency and prevent overfitting.
 
-# Main Function
+## Main Function
 The `main` function is the entry point of the script. It handles file input, data preprocessing, model training, and evaluation. The function runs a main loop testing the models accuracy with different epochs and lenghts of input to converge on the best performing model. 
+
+# Crypto and Forex
+To stream crypto `oanda/crypto` or forex `oanda/forex`, the Oanda API is used. Click [here](https://developer.oanda.com/rest-live-v20/introduction/) to get started with the Oanda API. 
+
+To stream any crypto coin or forex instrument, simply navigate to the `oanda/crypto` or `oanda/crypto`. From there run the `stream.py` python script and the real time data will br printed to the console and written to a generated file.
 
